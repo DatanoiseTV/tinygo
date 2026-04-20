@@ -47,6 +47,9 @@ func cFBFlush(x, y, w, h uint32)
 //export spaceos_fb_flush_all
 func cFBFlushAll()
 
+//export spaceos_fb_flush_scaled
+func cFBFlushScaled(srcW, srcH uint32)
+
 // Surface is a handle to the VFB.
 type Surface struct {
 	pixels   []byte // memory-mapped slice aliasing the real back-buffer
@@ -186,3 +189,11 @@ func (s *Surface) Flush(x, y, w, h int) {
 
 // FlushAll pushes the entire back-buffer.
 func (s *Surface) FlushAll() { cFBFlushAll() }
+
+// FlushScaled treats the top-left src_w × src_h region of the back-
+// buffer as a low-res frame and replicates each pixel to fill the
+// real framebuffer (nearest-neighbour). Fast way to cut pixel work
+// by N² while still filling the screen.
+func (s *Surface) FlushScaled(srcW, srcH int) {
+	cFBFlushScaled(uint32(srcW), uint32(srcH))
+}

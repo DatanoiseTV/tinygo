@@ -259,6 +259,7 @@ func pathsToOverride(goMinor int, needsSyscallPackage bool) map[string]bool {
 		"sync/":                       true,
 		"testing/":                    true,
 		"tinygo/":                     false,
+		"spaceos/":                    false,
 		"unique/":                     false,
 	}
 

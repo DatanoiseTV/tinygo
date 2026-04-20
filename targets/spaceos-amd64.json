@@ -1,7 +1,7 @@
 {
 	"llvm-target": "x86_64-unknown-none",
 	"cpu": "x86-64",
-	"features": "-mmx,-sse,-sse2,-sse3,-ssse3,-sse4.1,-sse4.2,-3dnow,-3dnowa,-avx,-avx2",
+	"features": "+sse,+sse2,-mmx,-sse3,-ssse3,-sse4.1,-sse4.2,-avx,-avx2",
 	"goos": "linux",
 	"goarch": "amd64",
 	"build-tags": ["spaceos", "freertos", "baremetal", "amd64"],

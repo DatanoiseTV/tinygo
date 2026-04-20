@@ -38,8 +38,12 @@ type Addr struct {
 }
 
 func (a Addr) String() string {
-	return itoa(int(a.IP[0])) + "." + itoa(int(a.IP[1])) + "." +
-		itoa(int(a.IP[2])) + "." + itoa(int(a.IP[3])) + ":" + itoa(int(a.Port))
+	s := itoa(int(a.IP[0])) + "." + itoa(int(a.IP[1])) + "." +
+		itoa(int(a.IP[2])) + "." + itoa(int(a.IP[3]))
+	if a.Port != 0 {
+		s += ":" + itoa(int(a.Port))
+	}
+	return s
 }
 
 func parseAddr(s string) (Addr, error) {

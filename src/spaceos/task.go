@@ -1,9 +1,7 @@
 package spaceos
 
-import "unsafe"
-
 // Task spawns f on a new FreeRTOS task. Use this as a surrogate for
-// `go f()` until real goroutines are supported.
+// `go f()` — with scheduler=none, real goroutines aren't supported.
 //
 //	spaceos.Task("probe", 0, 0, func() {
 //	    for {
@@ -13,36 +11,51 @@ import "unsafe"
 //	})
 //
 // stackWords of 0 defaults to 8*configMINIMAL_STACK_SIZE; priority of
-// 0 defaults to 2. Returns false if the kernel is out of heap.
+// 0 defaults to 2. Returns false if the kernel is out of heap or we've
+// exhausted the 128-slot registry (happens after 128 spawns in one
+// boot, which would be a bug in the caller).
 //
-// Caveat: call Task from the main Go task only, or coordinate calls
-// externally — the internal closure-keep list isn't currently
-// concurrency-safe.
+// Caveat: the registry isn't concurrency-safe — serialise Task() calls
+// externally if multiple tasks might spawn at once.
 func Task(name string, stackWords, priority uint32, f func()) bool {
-	c := &taskCtx{fn: f}
-	keeps = append(keeps, c)
+	// Monotonic allocation — we never reuse a slot, so the in-flight
+	// task always sees its own entry. Wraps at registrySize; since
+	// tasks never come back to free slots, a long-running program must
+	// stay under 128 total Task() calls.
+	if nextID >= registrySize {
+		return false
+	}
+	id := nextID
+	nextID++
+	registry[id] = f
 
 	nb := make([]byte, len(name)+1)
 	copy(nb, name)
 
-	return cTaskSpawn(unsafe.Pointer(c), &nb[0], stackWords, priority)
+	if !cTaskSpawn(uintptr(id), &nb[0], stackWords, priority) {
+		registry[id] = nil
+		return false
+	}
+	return true
 }
 
-type taskCtx struct {
-	fn func()
-}
+const registrySize = 128
 
-// Keep a reference so the GC (when we get one) doesn't reclaim the
-// closure before the task finishes with it.
-var keeps = make([]*taskCtx, 0, 32)
+var (
+	registry [registrySize]func()
+	nextID   uint32
+)
 
 //export spaceos_task_spawn
-func cTaskSpawn(ctx unsafe.Pointer, name *byte, stackWords, priority uint32) bool
+func cTaskSpawn(id uintptr, name *byte, stackWords, priority uint32) bool
 
-// Callback run from a new FreeRTOS task by the C trampoline.
-//
-//export spaceos_run_task_ctx
-func runTaskCtx(p unsafe.Pointer) {
-	c := (*taskCtx)(p)
-	c.fn()
+//export spaceos_run_task_id
+func runTaskID(id uintptr) {
+	if id >= registrySize {
+		return
+	}
+	f := registry[id]
+	if f != nil {
+		f()
+	}
 }
