@@ -24,5 +24,6 @@
 	],
 	"ldflags": [
 		"--gc-sections"
-	]
+	],
+	"emulator": "qemu-system-x86_64 -kernel {} -m 256M -serial mon:stdio -display none -no-reboot"
 }

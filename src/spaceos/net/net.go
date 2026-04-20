@@ -393,6 +393,37 @@ type Status struct {
 	HTTPRequests         uint64
 }
 
+// ---------------------------------------------------------------- dns
+
+//export spaceos_dns_resolve
+func cDNSResolve(host *byte, timeoutMs int32) uint32
+
+// ResolveIP looks up host via lwIP's stub resolver and returns the
+// first A record. An all-zero Addr means the lookup failed.
+func ResolveIP(host string) (Addr, error) {
+	b := make([]byte, len(host)+1)
+	copy(b, host)
+	ip := cDNSResolve(&b[0], 5000)
+	if ip == 0 {
+		return Addr{}, errors.New("spaceos/net: dns resolve failed for " + host)
+	}
+	return Addr{IP: [4]byte{
+		byte(ip >> 24), byte(ip >> 16), byte(ip >> 8), byte(ip),
+	}}, nil
+}
+
+// DialHost is a convenience: resolve host then Dial host:port.
+func DialHost(host string, port uint16) (*Conn, error) {
+	a, err := ResolveIP(host)
+	if err != nil {
+		return nil, err
+	}
+	a.Port = port
+	return Dial("tcp", a.String())
+}
+
+// ---------------------------------------------------------------- status
+
 func CurrentStatus() Status {
 	var r cNetStatusRaw
 	cNetStatus(&r)

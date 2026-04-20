@@ -84,3 +84,44 @@ func abort() {
 func exit(code int) {
 	abort()
 }
+
+// ---- hardware RNG --------------------------------------------------------
+
+//export spaceos_rdrand
+func spaceos_rdrand(out *uint64) bool
+
+func hardwareRand() (n uint64, ok bool) {
+	var v uint64
+	ok = spaceos_rdrand(&v)
+	return v, ok
+}
+
+// ---- wall-clock time -----------------------------------------------------
+
+//export spaceos_wall_offset_ns
+func spaceos_wall_offset_ns() int64
+
+// init runs at package init, after preinit() and initRand(). If the
+// kernel has wired an NTP/RTC offset, mirror it into the monotonic-to-
+// wall offset used by time.Now().
+func init() {
+	if o := spaceos_wall_offset_ns(); o != 0 {
+		AdjustTimeOffset(o)
+	}
+}
+
+// ---- stdin ----------------------------------------------------------------
+
+//export spaceos_stdin_read
+func spaceos_stdin_read(buf *byte, cap uintptr, timeoutMs int32) int32
+
+// ReadStdin reads at most len(p) bytes of input fed into the Go task
+// via the CLI or telnet driver. Returns 0 on timeout, -1 on error.
+// Not part of tinygo runtime contract — this is a convenience exposed
+// for spaceos wrappers.
+func ReadStdin(p []byte, timeoutMs int) int {
+	if len(p) == 0 {
+		return 0
+	}
+	return int(spaceos_stdin_read(&p[0], uintptr(len(p)), int32(timeoutMs)))
+}
