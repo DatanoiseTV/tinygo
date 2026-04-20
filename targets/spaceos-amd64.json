@@ -1,0 +1,28 @@
+{
+	"llvm-target": "x86_64-unknown-none",
+	"cpu": "x86-64",
+	"features": "-mmx,-sse,-sse2,-sse3,-ssse3,-sse4.1,-sse4.2,-3dnow,-3dnowa,-avx,-avx2",
+	"goos": "linux",
+	"goarch": "amd64",
+	"build-tags": ["spaceos", "freertos", "baremetal", "amd64"],
+	"scheduler": "none",
+	"gc": "leaking",
+	"linker": "ld.lld",
+	"rtlib": "compiler-rt",
+	"default-stack-size": 16384,
+	"cflags": [
+		"-target", "x86_64-unknown-none",
+		"-Werror",
+		"-mno-red-zone",
+		"-mno-mmx", "-mno-sse", "-mno-sse2",
+		"-mcmodel=kernel",
+		"-fno-pic",
+		"-fno-stack-protector",
+		"-ffreestanding", "-fno-builtin",
+		"-fno-exceptions", "-fno-unwind-tables", "-fno-asynchronous-unwind-tables",
+		"-ffunction-sections", "-fdata-sections"
+	],
+	"ldflags": [
+		"--gc-sections"
+	]
+}
